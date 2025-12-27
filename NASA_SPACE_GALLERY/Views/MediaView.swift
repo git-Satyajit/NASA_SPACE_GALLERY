@@ -15,31 +15,11 @@ struct MediaView: View {
             if apod.mediaType == "image" {
                 NavigationLink(destination: DetailView(url: URL(string: apod.url)!)) {
                     
-                    AsyncImage(url: URL(string: apod.url)) { phase in
-                        switch phase {
-                        case .empty:
-                            ZStack {
-                                Color.gray.opacity(0.1)
-                                ProgressView()
-                            }
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: geo.size.width, height: 300) //
-                                .clipped()
-                        case .failure:
-                            ZStack {
-                                Color.gray.opacity(0.1)
-                                Image(systemName: "photo")
-                                    .font(.largeTitle)
-                                    .foregroundColor(.gray)
-                            }
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                    .frame(width: geo.size.width, height: 300)
+                    // 2. NEW Cached Image View (Replaces AsyncImage)
+                    CachedImageView(url: URL(string: apod.url)!)
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: 300)
+                        .clipped() // Prevents image from spilling out of the row
                 }
                 
             } else {
