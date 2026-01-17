@@ -34,7 +34,8 @@ class APIService: APIServiceProtocol {
             throw APIError.invalidURL
         }
         do {
-           
+            // Add this print inside your fetchAPOD function
+            print("🚀 Requesting URL: \(url.absoluteString)")
 
             let (data, response) = try await URLSession.shared.data(from: url)
 

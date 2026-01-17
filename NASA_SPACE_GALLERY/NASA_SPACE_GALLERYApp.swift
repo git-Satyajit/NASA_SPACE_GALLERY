@@ -6,12 +6,16 @@
 //
 
 import SwiftUI
+import Combine
+import CoreData
 
 @main
 struct NASA_SPACE_GALLERYApp: App {
+    let persistenceController = PersistenceController.shared
     var body: some Scene {
         WindowGroup {
             HomeView()
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
 }
