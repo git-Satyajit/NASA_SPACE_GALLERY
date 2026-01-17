@@ -13,7 +13,7 @@ struct MediaView: View {
     var body: some View {
         GeometryReader { geo in
             if apod.mediaType == "image" {
-                NavigationLink(destination: DetailView(url: URL(string: apod.url)!)) {
+                NavigationLink(destination: DetailView(apod: apod)) {
                     
                     // 2. NEW Cached Image View (Replaces AsyncImage)
                     CachedImageView(url: URL(string: apod.url)!)

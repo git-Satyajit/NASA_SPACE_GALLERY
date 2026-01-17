@@ -8,90 +8,60 @@
 
 import SwiftUI
 
-@MainActor
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
-    var validDateRange: ClosedRange<Date> {
-            let minDate = Calendar.current.date(from: DateComponents(year: 1995, month: 6, day: 16))!
-            let maxDate = Date()
-            return minDate...maxDate
-        }
+    
+    let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
+    let minDate = Calendar.current.date(from: DateComponents(year: 1995, month: 6, day: 16))!
     
     var body: some View {
         NavigationView {
-            VStack {
-                
-                DatePicker("Select Date",
-                           selection: $viewModel.selectedDate,
-                           in: validDateRange, 
-                           displayedComponents: .date)
-                .datePickerStyle(.compact)
-                .padding()
-                .onChange(of: viewModel.selectedDate) { _, newDate in
-                    viewModel.updateDate(to: newDate)
-                                    }
-                
-            
-                Group {
-                    switch viewModel.state {
-                    case .idle:
-                        Color.clear.onAppear { viewModel.loadTodaysPhoto() }
-                        
-                    case .loading:
-                        ProgressView("Fetching from NASA...")
-                            .scaleEffect(1.5)
-                        
-                    case .success(let apod):
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 16) {
-                                MediaView(apod: apod)
-                                    
-                                    .cornerRadius(12)
-                                    .shadow(radius: 5)
-                                Text(apod.title)
-                                    .font(.title2)
-                                    .bold()
-                                    .foregroundColor(.primary)
-                                HStack {
-                                    Text(apod.date)
-                                    Spacer()
-                                    if let copyright = apod.copyright {
-                                        Text("© \(copyright)")
+            ScrollView {
+                VStack(spacing: 0) {
+                    // 1. Date Picker Header
+                    HStack {
+                        Text("Pick Date:")
+                            .font(.headline)
+                        DatePicker("", selection: $viewModel.selectedDate, in: minDate...Date(), displayedComponents: .date)
+                            .labelsHidden()
+                            .onChange(of: viewModel.selectedDate) { _, newDate in
+                                viewModel.loadDate(newDate)
+                            }
+                        Spacer()
+                        Button(action: { viewModel.loadRecentPhotos() }) {
+                            Image(systemName: "arrow.counterclockwise")
+                        }
+                    }
+                    .padding()
+                    .background(Color(uiColor: .secondarySystemBackground))
+                    
+                    // 2. Content Grid
+                    ScrollView {
+                        switch viewModel.state {
+                            case .idle, .loading:
+                                LazyVGrid(columns: columns, spacing: 16) {
+                                    ForEach(0..<6, id: \.self) { _ in SkeletonView().frame(height: 200) }
+                                }
+                                .padding()
+                                
+                            case .success(let apods):
+                                LazyVGrid(columns: columns, spacing: 16) {
+                                    ForEach(apods) { apod in
+                                        NavigationLink(destination: DetailView(apod: apod)) {
+                                            APODGridItem(apod: apod)
+                                        }
                                     }
                                 }
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                Text(apod.explanation)
-                                    .font(.body)
-                                    .multilineTextAlignment(.leading)
-                            }
-                            .padding()
-                        }
-                        
-                    case .error(let message):
-                        VStack(spacing: 10) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.largeTitle)
-                                .foregroundColor(.red)
-                            Text("Oops!")
-                                .font(.headline)
-                            Text(message)
-                                .font(.body)
-                                .multilineTextAlignment(.center)
                                 .padding()
-                            
-                            Button("Try Again") {
-                                viewModel.loadTodaysPhoto()
-                            }
-                            .buttonStyle(.borderedProminent)
+                                
+                            case .error(let msg):
+                                Text(msg).foregroundColor(.red).padding()
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .navigationTitle("NASA Gallery 🌌")
+                .onAppear { viewModel.loadRecentPhotos() }
             }
-            .navigationTitle("NASA Picture")
-            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
-

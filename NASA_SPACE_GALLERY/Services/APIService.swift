@@ -8,55 +8,43 @@
 import Foundation
 
 protocol APIServiceProtocol {
-    func fetchPhoto(date: Date?) async throws -> APODModel
+    func fetchPhoto(date: Date) async throws -> APODModel
+    func fetchRecentPhotos(days: Int) async throws -> [APODModel]
 }
+
 class APIService: APIServiceProtocol {
-    
     private let baseURL = "https://api.nasa.gov/planetary/apod"
     
-    func fetchPhoto(date: Date? = nil) async throws -> APODModel {
-        guard var components = URLComponents(string: baseURL) else {
-            throw APIError.invalidURL
-        }
-        var queryItems = [
-            URLQueryItem(name: "api_key", value: APIConfig.nasaAPIKey)
-        ]
-        if let date = date {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            let dateString = formatter.string(from: date)
-            queryItems.append(URLQueryItem(name: "date", value: dateString))
-        }
+    // 1. Fetch SINGLE Photo (For Date Picker)
+    func fetchPhoto(date: Date) async throws -> APODModel {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dateString = formatter.string(from: date)
         
-        components.queryItems = queryItems
+        let urlString = "\(baseURL)?api_key=\(APIConfig.nasaAPIKey)&date=\(dateString)"
+        guard let url = URL(string: urlString) else { throw APIError.invalidURL }
         
-        guard let url = components.url else {
-            throw APIError.invalidURL
-        }
-        do {
-            // Add this print inside your fetchAPOD function
-            print("🚀 Requesting URL: \(url.absoluteString)")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(APODModel.self, from: data)
+    }
 
-            let (data, response) = try await URLSession.shared.data(from: url)
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw APIError.invalidResponse
-            }
-            if !(200...299).contains(httpResponse.statusCode) {
-                print("❌ API ERROR CODE: \(httpResponse.statusCode)")
-                if let errorText = String(data: data, encoding: .utf8) {
-                    print("❌ API MESSAGE: \(errorText)")
-                }
-                
-                throw APIError.invalidResponse
-            }
-            let decodedData = try JSONDecoder().decode(APODModel.self, from: data)
-            return decodedData
+    // 2. Fetch GRID (Parallel Request for last 7 days)
+    func fetchRecentPhotos(days: Int = 7) async throws -> [APODModel] {
+        return try await withThrowingTaskGroup(of: APODModel?.self) { group in
+            var results: [APODModel] = []
             
-        } catch is DecodingError {
-            throw APIError.decodingError
-        } catch {
-            throw APIError.unknown(error)
+            for i in 0..<days {
+                let dateToFetch = Calendar.current.date(byAdding: .day, value: -i, to: Date())!
+                group.addTask {
+                    try? await self.fetchPhoto(date: dateToFetch)
+                }
+            }
+            
+            for try await photo in group {
+                if let photo = photo { results.append(photo) }
+            }
+            
+            return results.sorted { $0.date > $1.date } // Sort Newest First
         }
     }
 }
