@@ -9,23 +9,49 @@ import SwiftUI
 
 struct APODGridItem: View {
     let apod: APODModel
+    @ObservedObject var favoritesManager = FavoritesManager.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // 1. Image
             ZStack(alignment: .topTrailing) {
-                CachedImageView(url: URL(string: apod.url)!)
-                    .scaledToFill()                 // Zoom to fill square
-                    .frame(width: (UIScreen.main.bounds.width / 2) - 24)
-                    .frame(height: 160)             // Fixed height
-                    .clipped()                      // Cut off edges
-                
-                // Heart Icon
-                Image(systemName: "heart")
-                    .foregroundColor(.red)
-                    .padding(8)
-                    .background(.ultraThinMaterial, in: Circle())
-                    .padding(4)
+                if let validURL = URL(string: apod.url) {
+                    CachedImageView(url: validURL)
+                        .scaledToFill()
+                        .frame(width: (UIScreen.main.bounds.width / 2) - 24)
+                        .frame(height: 160)
+                        .clipped()
+                } else {
+                    // Fallback if URL is bad (e.g. empty string from Core Data)
+                    ZStack {
+                        Color.gray.opacity(0.3)
+                        Image(systemName: "photo.slash")
+                            .foregroundColor(.gray)
+                    }
+                    .frame(width: (UIScreen.main.bounds.width / 2) - 24, height: 160)
+                }
+                // 2. THE HEART BUTTON
+                Button(action: {
+                    // Trigger the Save/Delete Logic
+                    favoritesManager.toggleFavorite(apod: apod)
+                    
+                    // Optional: Haptic Feedback for a nice "click" feel
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 32, height: 32)
+                        
+                        // 3. Dynamic Icon Logic
+                        Image(systemName: favoritesManager.isFavorite(apod) ? "heart.fill" : "heart")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(favoritesManager.isFavorite(apod) ? .red : .gray)
+                            .animation(.spring(), value: favoritesManager.isFavorite(apod)) // Bouncy animation
+                    }
+                }
+                .padding(8)
             }
             
             // 2. Text
