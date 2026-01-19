@@ -29,7 +29,7 @@ struct FavoriteView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "heart.slash")
                             .font(.system(size: 60))
-                            .foregroundColor(.gray.opacity(0.5))
+                            .foregroundColor(Color.secondary)
                         Text("No Favorites Yet")
                             .font(.headline)
                             .foregroundColor(.secondary)

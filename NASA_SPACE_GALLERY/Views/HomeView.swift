@@ -16,51 +16,59 @@ struct HomeView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 0) {
-                    // 1. Date Picker Header
-                    HStack {
-                        Text("Pick Date:")
-                            .font(.headline)
-                        DatePicker("", selection: $viewModel.selectedDate, in: minDate...Date(), displayedComponents: .date)
-                            .labelsHidden()
-                            .onChange(of: viewModel.selectedDate) { _, newDate in
-                                viewModel.loadDate(newDate)
-                            }
-                        Spacer()
-                        Button(action: { viewModel.loadRecentPhotos() }) {
-                            Image(systemName: "arrow.counterclockwise")
-                        }
-                    }
-                    .padding()
-                    .background(Color(uiColor: .secondarySystemBackground))
+            
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Pick Date:")
+                        .font(.headline)
+                        .foregroundColor(.primary)
                     
-                    // 2. Content Grid
-                    ScrollView {
-                        switch viewModel.state {
-                            case .idle, .loading:
-                                LazyVGrid(columns: columns, spacing: 16) {
-                                    ForEach(0..<6, id: \.self) { _ in SkeletonView().frame(height: 200) }
-                                }
-                                .padding()
-                                
-                            case .success(let apods):
-                                LazyVGrid(columns: columns, spacing: 16) {
-                                    ForEach(apods) { apod in
-                                        NavigationLink(destination: DetailView(apod: apod)) {
-                                            APODGridItem(apod: apod)
-                                        }
-                                    }
-                                }
-                                .padding()
-                                
-                            case .error(let msg):
-                                Text(msg).foregroundColor(.red).padding()
+                    DatePicker("", selection: $viewModel.selectedDate, in: minDate...Date(), displayedComponents: .date)
+                        .labelsHidden()
+                        .onChange(of: viewModel.selectedDate) { _, newDate in
+                            viewModel.loadDate(newDate)
                         }
+                    
+                    Spacer()
+                    
+                    Button(action: { viewModel.loadRecentPhotos() }) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .foregroundColor(Color("BrandColor"))
                     }
                 }
-                .navigationTitle("NASA Gallery 🌌")
-                .onAppear { viewModel.loadRecentPhotos() }
+                .padding()
+                .background(Color(uiColor: .secondarySystemBackground))
+                
+                // 2. Content Grid (This is the ONLY ScrollView)
+                ScrollView {
+                    switch viewModel.state {
+                    case .idle, .loading:
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(0..<6, id: \.self) { _ in SkeletonView().frame(height: 200) }
+                        }
+                        .padding()
+                        
+                    case .success(let apods):
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(apods) { apod in
+                                NavigationLink(destination: DetailView(apod: apod)) {
+                                    APODGridItem(apod: apod)
+                                }
+                            }
+                        }
+                        .padding()
+                        
+                    case .error(let msg):
+                        Text(msg).foregroundColor(.red).padding()
+                    }
+                }
+            }
+            .navigationTitle("NASA Gallery 🌌")
+            .onAppear {
+                // Only load if empty (Optional optimization for first launch)
+                if case .idle = viewModel.state {
+                    viewModel.loadRecentPhotos()
+                }
             }
         }
     }

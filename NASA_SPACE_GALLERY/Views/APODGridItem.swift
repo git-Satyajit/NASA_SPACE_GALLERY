@@ -10,6 +10,7 @@ import SwiftUI
 struct APODGridItem: View {
     let apod: APODModel
     @ObservedObject var favoritesManager = FavoritesManager.shared
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -70,7 +71,11 @@ struct APODGridItem: View {
             .padding(8)
             .background(Color(uiColor: .systemBackground))
         }
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(colorScheme == .dark ? Color.white.opacity(0.2) : Color.clear, lineWidth: 1)
+        )
         .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+        .shadow(color: colorScheme == .dark ? .clear : .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }

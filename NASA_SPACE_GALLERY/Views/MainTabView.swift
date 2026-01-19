@@ -17,6 +17,7 @@ struct MainTabView: View {
                     FavoriteView()
             }
         }
+        .tint(Color("BrandColor"))
     }
 }
 
