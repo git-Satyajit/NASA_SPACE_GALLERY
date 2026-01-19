@@ -27,6 +27,10 @@ class HomeViewModel: ObservableObject {
     
     // Load the 7-Day Grid
     func loadRecentPhotos() {
+        if case .success(let currentPhotos) = state, !currentPhotos.isEmpty {
+                    print("✋ Data already loaded. Skipping API call.")
+                    return
+                }
         self.state = .loading
         Task {
             do {
